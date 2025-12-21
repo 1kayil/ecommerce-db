@@ -49,4 +49,14 @@ and is included as `er-diagram.png`.
 - SQL (DDL, DML, analytical queries)
 
 ## 📁 Repository Structure
+schema.sql - database schema (CREATE TABLE)
+inserts.sql - sample data (INSERT statements)
+queries.sql - analytical SQL queries
+er-diagram.png - ER diagram of the database
+README.md - project documentation
+
+
+## 👤 Author
+Junior SQL / Database Developer  
+Focused on relational databases and data analysis.
 
