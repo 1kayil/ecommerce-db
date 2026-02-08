@@ -1,0 +1,114 @@
+DB_CONFIG = {
+    "host": "localhost",
+    "user": "root",
+    "password": "iwilllovedariforever",
+    "database": "mega_project",
+    "port": 3306
+}
+
+import mysql.connector
+from config import DB_CONFIG
+
+def get_connection():
+    return mysql.connector.connect(**DB_CONFIG)
+
+import pandas as pd
+from db import get_connection
+
+def top_users(min_spent=100):
+    db = get_connection()
+    query = """
+    SELECT *
+    FROM v_top_users
+    WHERE spent > %s
+    ORDER BY spent DESC
+    LIMIT 10
+    """
+    df = pd.read_sql(query, db, params=(min_spent,))
+    db.close()
+    return df
+
+
+def top_products():
+    db = get_connection()
+    query = """
+    SELECT *
+    FROM v_top_products
+    ORDER BY sold DESC
+    LIMIT 10
+    """
+    df = pd.read_sql(query, db)
+    db.close()
+    return df
+
+from db import get_connection
+
+def create_order(user_id, product_id, quantity):
+    db = get_connection()
+    cursor = db.cursor()
+
+    cursor.execute(
+        "INSERT INTO orders(user_id,status,total_price) VALUES (%s,'pending',0)",
+        (user_id,)
+    )
+    order_id = cursor.lastrowid
+
+    cursor.execute(
+        "SELECT price FROM products WHERE id=%s",
+        (product_id,)
+    )
+    price = cursor.fetchone()[0]
+
+    cursor.execute(
+        """
+        INSERT INTO order_items(order_id,product_id,quantity,price)
+        VALUES (%s,%s,%s,%s)
+        """,
+        (order_id, product_id, quantity, price)
+    )
+
+    cursor.execute(
+        "UPDATE orders SET total_price=%s WHERE id=%s",
+        (price * quantity, order_id)
+    )
+
+    db.commit()
+    db.close()
+    return order_id
+
+from db import get_connection
+
+def generate_users(n=100):
+    db = get_connection()
+    cursor = db.cursor()
+
+    users = [
+        (f"py_user_{i}", f"py_user_{i}@mail.com", "hash", 2)
+        for i in range(1, n + 1)
+    ]
+
+    cursor.executemany(
+        "INSERT INTO users(username,email,password_hash,role_id) VALUES (%s,%s,%s,%s)",
+        users
+    )
+
+    db.commit()
+    db.close()
+
+from analytics import top_users, top_products
+from orders import create_order
+from seed import generate_users
+
+print("=== TOP USERS ===")
+print(top_users(200))
+
+print("\n=== TOP PRODUCTS ===")
+print(top_products())
+
+print("\n=== CREATE ORDER ===")
+order_id = create_order(user_id=2, product_id=1, quantity=2)
+print("Order created:", order_id)
+
+print("\n=== GENERATE USERS ===")
+generate_users(50)
+print("Users added")
